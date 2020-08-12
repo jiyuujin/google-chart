@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>COVID19 - Google Chart</title>
+</head>
+<body>
+  <div id="target"></div>
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+  <script>
+    (function() {
+      'use strict';
+
+      google.charts.load('current', { packages: ['corechart'] });
+      google.charts.setOnLoadCallback(drawChart);
+
+      async function fetchData() {
+        // const res = await fetch('https://stopcovid19.metro.tokyo.lg.jp/data/130001_tokyo_covid19_patients.csv');
+        const res = await fetch('../data/130001_tokyo_covid19_patients.csv');
+        return res.text();
+      }
+
+      function convertCsvStringToArray(str) {
+        return str.split('\n').map(s => s.split(','));
+      }
+
+      function filteredGroupBy(list) {
+        const map = new Map();
+        list.forEach(item => {
+          const key = item[4];
+          const collection = map.get(key);
+          if (!collection) {
+            map.set(key, [item]);
+          } else {
+            collection.push(item);
+          }
+        })
+        return map;
+      }
+
+      async function drawChart() {
+        const gdata　= new google.visualization.DataTable();
+        let total = 0;
+
+        gdata.addColumn('string', '日付');
+        gdata.addColumn('number', '感染者数');
+
+        const data = convertCsvStringToArray(await fetchData());
+        const patientData = filteredGroupBy(data);
+        patientData.forEach((item, key) => {
+          gdata.addRow([key, item.length]);
+          total += item.length;
+        })
+
+        const options = {
+          title: '東京都 新型コロナウイルス陽性患者発表詳細',
+          hAxis: {
+            title: '日付'
+          },
+          vAxis: {
+            title: '感染者数'
+          },
+          width: 1200,
+          height: 800,
+          bars: 'horizontal'
+        };
+
+        const chart = new google.visualization.ColumnChart(document.getElementById('target'));
+        chart.draw(gdata, options);
+      }
+    })();
+  </script>
+</body>
+</html>
